@@ -3,8 +3,6 @@ package roomescape.reservation;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -13,10 +11,11 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import roomescape.auth.Auth;
+import roomescape.auth.LoginUser;
 import roomescape.reservation.dto.PageReservationsResponse;
 import roomescape.reservation.dto.ReservationRequest;
 import roomescape.reservation.dto.ReservationResponse;
@@ -33,8 +32,12 @@ public class ReservationController {
     }
 
     @PostMapping
-    public ResponseEntity<ReservationResponse> create(@RequestBody @Valid ReservationRequest reservationRequest) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(reservationService.create(reservationRequest));
+    public ResponseEntity<ReservationResponse> create(
+            @Auth LoginUser loginUser,
+            @RequestBody @Valid ReservationRequest reservationRequest
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(reservationService.create(loginUser, reservationRequest));
     }
 
     @GetMapping
@@ -45,31 +48,28 @@ public class ReservationController {
         return ResponseEntity.status(HttpStatus.OK).body(reservationService.read(page, size));
     }
 
-    @GetMapping(params = {"user_name"})
-    public ResponseEntity<ReservationsResponse> read(
-            @RequestParam("user_name") String userName
-    ) {
-        return ResponseEntity.status(HttpStatus.OK).body(reservationService.readByUserName(userName));
+    @GetMapping("/my")
+    public ResponseEntity<ReservationsResponse> readMy(@Auth LoginUser loginUser) {
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(reservationService.readByUserName(loginUser.name()));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<ReservationResponse> update(
             @PathVariable long id,
-            @RequestBody @Valid ReservationRequest reservationRequest,
-            @RequestHeader("User-Name") String userName
+            @Auth LoginUser loginUser,
+            @RequestBody @Valid ReservationRequest reservationRequest
     ) {
-        String decodeUserName = URLDecoder.decode(userName, StandardCharsets.UTF_8);
         return ResponseEntity.status(HttpStatus.OK)
-                .body(reservationService.update(id, reservationRequest, decodeUserName));
+                .body(reservationService.update(id, reservationRequest, loginUser));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(
             @PathVariable long id,
-            @RequestHeader("User-Name") String userName
+            @Auth LoginUser loginUser
     ) {
-        String decodeUserName = URLDecoder.decode(userName, StandardCharsets.UTF_8);
-        reservationService.delete(id, decodeUserName);
+        reservationService.delete(id, loginUser);
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 }

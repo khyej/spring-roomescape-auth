@@ -16,6 +16,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import roomescape.auth.LoginUser;
 import roomescape.exception.AlreadyInUseException;
 import roomescape.exception.ForbiddenException;
 import roomescape.exception.InvalidStateException;
@@ -46,6 +47,7 @@ class ReservationServiceTest {
 
     private final Theme theme = new Theme(1L, "공포의 방", "무서운 방", "http://s3.com");
     private final ReservationTime reservationTime = new ReservationTime(1L, LocalTime.of(10, 0));
+    private final LoginUser loginUser = new LoginUser(1L, "동키");
 
     @Test
     void 이미_지난_날짜로_예약_생성시_400() {
@@ -54,9 +56,9 @@ class ReservationServiceTest {
         given(reservationTimeRepository.findById(1L)).willReturn(Optional.of(reservationTime));
         given(themeRepository.findById(1L)).willReturn(Optional.of(theme));
 
-        ReservationRequest request = new ReservationRequest("동키", 1L, LocalDate.of(2026, 5, 13), 1L);
+        ReservationRequest request = new ReservationRequest(1L, LocalDate.of(2026, 5, 13), 1L);
 
-        assertThatThrownBy(() -> reservationService.create(request))
+        assertThatThrownBy(() -> reservationService.create(loginUser, request))
                 .isInstanceOf(InvalidStateException.class);
     }
 
@@ -69,9 +71,9 @@ class ReservationServiceTest {
         given(reservationTimeRepository.findById(1L)).willReturn(Optional.of(reservationTime));
         given(themeRepository.findById(1L)).willReturn(Optional.of(theme));
 
-        ReservationRequest request = new ReservationRequest("동키", 1L, LocalDate.of(2026, 5, 1), 1L);
+        ReservationRequest request = new ReservationRequest(1L, LocalDate.of(2026, 5, 1), 1L);
 
-        assertThatThrownBy(() -> reservationService.update(1L, request, "동키"))
+        assertThatThrownBy(() -> reservationService.update(1L, request, loginUser))
                 .isInstanceOf(InvalidStateException.class);
     }
 
@@ -82,7 +84,7 @@ class ReservationServiceTest {
         Reservation reservation = new Reservation(1L, "동키", theme, LocalDate.of(2026, 5, 10), reservationTime);
         given(reservationRepository.findById(1L)).willReturn(Optional.of(reservation));
 
-        assertThatThrownBy(() -> reservationService.delete(1L, "동키"))
+        assertThatThrownBy(() -> reservationService.delete(1L, loginUser))
                 .isInstanceOf(InvalidStateException.class);
     }
 
@@ -102,7 +104,9 @@ class ReservationServiceTest {
         Reservation reservation = new Reservation(1L, "동키", theme, LocalDate.of(2026, 5, 20), reservationTime);
         given(reservationRepository.findById(1L)).willReturn(Optional.of(reservation));
 
-        assertThatThrownBy(() -> reservationService.delete(1L, "그해"))
+        LoginUser otherUser = new LoginUser(2L, "그해");
+
+        assertThatThrownBy(() -> reservationService.delete(1L, otherUser))
                 .isInstanceOf(ForbiddenException.class);
     }
 
@@ -111,9 +115,10 @@ class ReservationServiceTest {
         Reservation reservation = new Reservation(1L, "동키", theme, LocalDate.of(2026, 5, 20), reservationTime);
         given(reservationRepository.findById(1L)).willReturn(Optional.of(reservation));
 
-        ReservationRequest request = new ReservationRequest("그해", 1L, LocalDate.of(2026, 5, 21), 1L);
+        LoginUser otherUser = new LoginUser(2L, "그해");
+        ReservationRequest request = new ReservationRequest(1L, LocalDate.of(2026, 5, 21), 1L);
 
-        assertThatThrownBy(() -> reservationService.update(1L, request, "그해"))
+        assertThatThrownBy(() -> reservationService.update(1L, request, otherUser))
                 .isInstanceOf(ForbiddenException.class);
     }
 
@@ -126,9 +131,9 @@ class ReservationServiceTest {
         given(reservationRepository.existsByThemeIdAndDateAndTimeId(anyLong(), any(LocalDate.class), anyLong()))
                 .willReturn(true);
 
-        ReservationRequest request = new ReservationRequest("동키", 1L, LocalDate.of(2026, 5, 20), 1L);
+        ReservationRequest request = new ReservationRequest(1L, LocalDate.of(2026, 5, 20), 1L);
 
-        assertThatThrownBy(() -> reservationService.create(request))
+        assertThatThrownBy(() -> reservationService.create(loginUser, request))
                 .isInstanceOf(AlreadyInUseException.class);
     }
 

@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import roomescape.auth.LoginUser;
 import roomescape.exception.AlreadyInUseException;
 import roomescape.exception.NotFoundException;
 import roomescape.reservation.dto.PageReservationsResponse;
@@ -36,12 +37,12 @@ public class ReservationService {
     }
 
     @Transactional
-    public ReservationResponse create(ReservationRequest reservationRequest) {
+    public ReservationResponse create(LoginUser loginUser, ReservationRequest reservationRequest) {
         ReservationTime reservationTime = getReservationTime(reservationRequest);
         Theme theme = getTheme(reservationRequest);
 
         Reservation reservation = new Reservation(
-                reservationRequest.userName(),
+                loginUser.name(),
                 theme,
                 reservationRequest.date(),
                 reservationTime
@@ -52,6 +53,39 @@ public class ReservationService {
 
         Reservation saved = reservationRepository.save(reservation);
         return ReservationResponse.from(saved);
+    }
+
+    @Transactional
+    public ReservationResponse update(long id, ReservationRequest reservationRequest, LoginUser loginUser) {
+        Reservation reservation = getReservation(id);
+
+        reservation.validateOwner(loginUser.name());
+        reservation.validateNotPast(LocalDateTime.now(clock));
+
+        ReservationTime reservationTime = getReservationTime(reservationRequest);
+        Theme theme = getTheme(reservationRequest);
+
+        Reservation updateReservation = new Reservation(
+                id,
+                reservation.getUserName(),
+                theme,
+                reservationRequest.date(),
+                reservationTime
+        );
+
+        updateReservation.validateNotPast(LocalDateTime.now(clock));
+        validateDuplicate(updateReservation);
+
+        reservationRepository.update(updateReservation);
+        return ReservationResponse.from(updateReservation);
+    }
+
+    @Transactional
+    public void delete(Long id, LoginUser loginUser) {
+        Reservation reservation = getReservation(id);
+        reservation.validateOwner(loginUser.name());
+        reservation.validateNotPast(LocalDateTime.now(clock));
+        reservationRepository.deleteById(id);
     }
 
     public PageReservationsResponse read(int page, int size) {
@@ -76,44 +110,9 @@ public class ReservationService {
     }
 
     @Transactional
-    public ReservationResponse update(long id, ReservationRequest reservationRequest, String userName) {
-        Reservation reservation = getReservation(id);
-
-        reservation.validateOwner(userName);
-        reservation.validateNotPast(LocalDateTime.now(clock));
-
-        ReservationTime reservationTime = getReservationTime(reservationRequest);
-        Theme theme = getTheme(reservationRequest);
-
-        Reservation updateReservation = new Reservation(
-                id,
-                reservation.getUserName(),
-                theme,
-                reservationRequest.date(),
-                reservationTime
-        );
-
-        updateReservation.validateNotPast(LocalDateTime.now(clock));
-        validateDuplicate(updateReservation);
-
-        reservationRepository.update(updateReservation);
-        return ReservationResponse.from(updateReservation);
-    }
-
-    @Transactional
     public void deleteByAdmin(Long id) {
         Reservation reservation = getReservation(id);
 
-        reservation.validateNotPast(LocalDateTime.now(clock));
-
-        reservationRepository.deleteById(id);
-    }
-
-    @Transactional
-    public void delete(Long id, String userName) {
-        Reservation reservation = getReservation(id);
-
-        reservation.validateOwner(userName);
         reservation.validateNotPast(LocalDateTime.now(clock));
 
         reservationRepository.deleteById(id);
