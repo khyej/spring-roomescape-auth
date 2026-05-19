@@ -2,6 +2,11 @@
     'use strict';
 
     document.addEventListener('DOMContentLoaded', async function () {
+        if (!api.isLoggedIn()) {
+            location.href = '/login';
+            return;
+        }
+
         const params = new URLSearchParams(location.search);
         const themeId = params.get('themeId');
         if (!themeId) {
@@ -61,22 +66,17 @@
             }
             const fd = new FormData(reserveForm);
             const payload = {
-                userName: (fd.get('userName') || '').trim(),
                 themeId: Number(themeId),
                 date: date,
                 timeId: Number(fd.get('timeId'))
             };
-            if (!payload.userName) {
-                await modal.alert({message: '탐정 이름을 입력하세요.'});
-                return;
-            }
             if (!payload.timeId) {
                 await modal.alert({message: '시간을 선택하세요.'});
                 return;
             }
             try {
                 await api.createReservation(payload);
-                location.href = '/reservations?user=' + encodeURIComponent(payload.userName);
+                location.href = '/reservations';
             } catch (err) {
                 await modal.alert({title: '예약 실패', message: err.message || '서버 오류가 발생했습니다.'});
             }
@@ -125,12 +125,8 @@
     }
 
     function escapeHtml(s) {
-        return String(s).replace(/[&<>"']/g, c => ({
-            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-        }[c]));
+        return String(s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
     }
 
-    function escapeAttr(s) {
-        return escapeHtml(s);
-    }
+    function escapeAttr(s) { return escapeHtml(s); }
 })();

@@ -2,28 +2,21 @@
     'use strict';
 
     document.addEventListener('DOMContentLoaded', async function () {
-        const params = new URLSearchParams(location.search);
-        const user = params.get('user');
+        if (!api.isLoggedIn()) {
+            location.href = '/login';
+            return;
+        }
 
-        const gateSection = document.getElementById('gate-section');
         const ledgerSection = document.getElementById('ledger-section');
         const ledgerBody = document.getElementById('ledger-body');
         const ledgerCount = document.getElementById('ledger-count');
         const ledgerEmpty = document.getElementById('ledger-empty');
         const ledgerTable = document.getElementById('ledger-table');
 
-        if (!user || !user.trim()) {
-            gateSection.style.display = '';
-            ledgerSection.style.display = 'none';
-            return;
-        }
-
-        gateSection.style.display = 'none';
         ledgerSection.style.display = '';
-        document.querySelectorAll('[data-bind="user"]').forEach(el => el.textContent = user);
 
         try {
-            const result = await api.listReservations(user);
+            const result = await api.listMyReservations();
             renderLedger(result.items);
         } catch (e) {
             modal.alert({title: '조회 실패', message: e.message});
@@ -57,14 +50,14 @@
             `).join('');
 
             ledgerBody.querySelectorAll('[data-action="delete"]').forEach(btn => {
-                btn.addEventListener('click', () => onDelete(btn.dataset.id, user));
+                btn.addEventListener('click', () => onDelete(btn.dataset.id));
             });
             ledgerBody.querySelectorAll('[data-action="update"]').forEach(btn => {
-                btn.addEventListener('click', () => onUpdate(btn.dataset.id, btn.dataset, user));
+                btn.addEventListener('click', () => onUpdate(btn.dataset.id, btn.dataset));
             });
         }
 
-        async function onDelete(id, userName) {
+        async function onDelete(id) {
             const ok = await modal.confirm({
                 title: '예약 폐기',
                 message: '이 예약을 폐기하면 복구할 수 없습니다. 계속하시겠습니까?',
@@ -73,7 +66,7 @@
             });
             if (!ok) return;
             try {
-                await api.deleteReservation(id, userName);
+                await api.deleteReservation(id);
                 const row = ledgerBody.querySelector(`tr[data-id="${id}"]`);
                 if (row) row.remove();
                 const remaining = ledgerBody.querySelectorAll('tr').length;
@@ -87,7 +80,7 @@
             }
         }
 
-        async function onUpdate(id, dataset, userName) {
+        async function onUpdate(id, dataset) {
             const updatePanel = document.getElementById('update-panel');
             if (updatePanel) updatePanel.remove();
 
@@ -134,13 +127,12 @@
                 }
                 try {
                     await api.updateReservation(id, {
-                        userName,
                         themeId: Number(dataset.themeId),
                         date: newDate,
                         timeId: newTimeId
-                    }, userName);
+                    });
                     panel.remove();
-                    const result = await api.listReservations(userName);
+                    const result = await api.listMyReservations();
                     renderLedger(result.items);
                 } catch (e) {
                     modal.alert({title: '변경 실패', message: e.message});
@@ -150,8 +142,6 @@
     });
 
     function escapeHtml(s) {
-        return String(s).replace(/[&<>\\"']/g, c => ({
-            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-        }[c]));
+        return String(s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
     }
 })();

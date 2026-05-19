@@ -24,6 +24,10 @@
                th:classappend="${active == 'reservations'} ? 'is-active' : ''">예약 명부</a>
             <a th:href="@{/console}"
                th:classappend="${active == 'console'} ? 'is-active' : ''">관리국</a>
+            <a th:href="@{/login}" id="nav-login"
+               th:classappend="${active == 'login'} ? 'is-active' : ''">로그인</a>
+            <a href="#" id="nav-logout" style="display:none;"
+               onclick="api.logout(); return false;">로그아웃</a>
             <span class="case-no"
                   th:text="'FILE · ' + ${#dates.format(#dates.createNow(), 'yyyy.MM.dd')}">FILE · DATE</span>
         </nav>
@@ -66,6 +70,14 @@
 
     <script th:src="@{/js/api.js}"></script>
     <script th:src="@{/js/confirm-modal.js}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            if (api.isLoggedIn()) {
+                document.getElementById('nav-login').style.display = 'none';
+                document.getElementById('nav-logout').style.display = '';
+            }
+        });
+    </script>
 </th:block>
 
 </body>

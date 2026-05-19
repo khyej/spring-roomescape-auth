@@ -1,35 +1,63 @@
-/* Thin fetch wrappers around the learner's JSON REST API. */
 window.api = (function () {
     'use strict';
 
-    async function getJson(url) {
-        const res = await fetch(url, {headers: {'Accept': 'application/json'}});
+    function getToken() {
+        return localStorage.getItem('token');
+    }
+
+    function authHeaders() {
+        const token = getToken();
+        return token ? {'Authorization': 'Bearer ' + token} : {};
+    }
+
+    async function getJson(url, auth = false) {
+        const headers = {'Accept': 'application/json', ...(auth ? authHeaders() : {})};
+        const res = await fetch(url, {headers});
+        if (res.status === 401) {
+            location.href = '/login';
+            throw new Error('인증이 필요합니다.');
+        }
         if (!res.ok) throw await toError(res);
         return res.json();
     }
 
-    async function postJson(url, body) {
-        const res = await fetch(url, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
-            body: JSON.stringify(body)
-        });
+    async function postJson(url, body, auth = false) {
+        const headers = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            ...(auth ? authHeaders() : {})
+        };
+        const res = await fetch(url, {method: 'POST', headers, body: JSON.stringify(body)});
+        if (res.status === 401) {
+            location.href = '/login';
+            throw new Error('인증이 필요합니다.');
+        }
         if (!res.ok) throw await toError(res);
         return res.status === 204 ? null : res.json();
     }
 
-    async function putJson(url, body, headers = {}) {
-        const res = await fetch(url, {
-            method: 'PUT',
-            headers: {'Content-Type': 'application/json', 'Accept': 'application/json', ...headers},
-            body: JSON.stringify(body)
-        });
+    async function putJson(url, body, auth = false) {
+        const headers = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            ...(auth ? authHeaders() : {})
+        };
+        const res = await fetch(url, {method: 'PUT', headers, body: JSON.stringify(body)});
+        if (res.status === 401) {
+            location.href = '/login';
+            throw new Error('인증이 필요합니다.');
+        }
         if (!res.ok) throw await toError(res);
         return res.status === 204 ? null : res.json();
     }
 
-    async function del(url, headers = {}) {
+    async function del(url, auth = false) {
+        const headers = {...(auth ? authHeaders() : {})};
         const res = await fetch(url, {method: 'DELETE', headers});
+        if (res.status === 401) {
+            location.href = '/login';
+            throw new Error('인증이 필요합니다.');
+        }
         if (!res.ok) throw await toError(res);
         return null;
     }
@@ -44,8 +72,7 @@ window.api = (function () {
             } else {
                 message = await res.text();
             }
-        } catch (_) {
-        }
+        } catch (_) {}
         const err = new Error(message || ('HTTP ' + res.status));
         err.status = res.status;
         return err;
@@ -65,6 +92,9 @@ window.api = (function () {
     }
 
     return {
+        isLoggedIn: () => !!getToken(),
+        logout: () => { localStorage.removeItem('token'); location.href = '/login'; },
+
         listThemes: async (page = 0, size = 10) => {
             const data = await getJson(`/api/themes?page=${page}&size=${size}`);
             return {items: data.themes || [], hasNext: data.hasNext ?? false};
@@ -74,18 +104,15 @@ window.api = (function () {
             const data = await getJson('/api/themes/popular');
             return data.themes || [];
         },
-        listReservations: async (userName, page = 0, size = 10) => {
-            if (userName) {
-                const data = await getJson('/api/reservations?user_name=' + encodeURIComponent(userName));
-                return {items: data.reservations || [], hasNext: false};
-            }
-            const data = await getJson(`/api/reservations?page=${page}&size=${size}`);
-            return {items: data.reservations || [], hasNext: data.hasNext ?? false};
+
+        listMyReservations: async () => {
+            const data = await getJson('/api/reservations/my', true);
+            return {items: data.reservations || []};
         },
 
-        createReservation: (payload) => postJson('/api/reservations', payload),
-        deleteReservation: (id, userName) => del('/api/reservations/' + id, {'User-Name': encodeURIComponent(userName)}),
-        updateReservation: (id, payload, userName) => putJson('/api/reservations/' + id, payload, {'User-Name': encodeURIComponent(userName)}),
+        createReservation: (payload) => postJson('/api/reservations', payload, true),
+        deleteReservation: (id) => del('/api/reservations/' + id, true),
+        updateReservation: (id, payload) => putJson('/api/reservations/' + id, payload, true),
         deleteReservationByAdmin: (id) => del('/api/admin/reservations/' + id),
 
         listTimes: async () => {
