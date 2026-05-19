@@ -72,7 +72,8 @@ window.api = (function () {
             } else {
                 message = await res.text();
             }
-        } catch (_) {}
+        } catch (_) {
+        }
         const err = new Error(message || ('HTTP ' + res.status));
         err.status = res.status;
         return err;
@@ -93,7 +94,10 @@ window.api = (function () {
 
     return {
         isLoggedIn: () => !!getToken(),
-        logout: () => { localStorage.removeItem('token'); location.href = '/login'; },
+        logout: () => {
+            localStorage.removeItem('token');
+            location.href = '/login';
+        },
 
         listThemes: async (page = 0, size = 10) => {
             const data = await getJson(`/api/themes?page=${page}&size=${size}`);
