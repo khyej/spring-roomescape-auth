@@ -1,0 +1,60 @@
+# 방탈출 미션
+
+## 목표
+
+- 마감기한 준수
+
+## 기능 요구 사항
+
+### 1 - 테마 도메인
+
+- [x] 테마 정보 관리 : 이름, 설명, 썸네일 이미지 URL
+- [x] 예약 데이터에 테마 정보를 포함하여 관리한다.
+- [x] 관리자는 방탈출 테마를 추가하거나 삭제할 수 있다.
+
+### 2 - 사용자 예약
+
+- [x] 사용자가 날짜와 테마를 선택하면 예약 가능한 시간 목록이 표시된다.
+    - 같은 날짜·시간이라도 테마가 다르면 각각 예약이 가능하다.
+- [x] 사용자가 자신의 이름으로 본인의 예약 목록을 조회할 수 있다.
+- [x] 사용자가 본인의 예약을 취소할 수 있다.
+- [x] 사용자가 본인의 예약의 날짜•시간을 변경할 수 있다.
+
+### 3 - 인기 테마 조회
+
+- [x] 일주일 동안 예약이 많았던 테마 상위 10개를 조회할 수 있다.
+
+### 4 - 예외 처리
+
+- [x] 지난 날짜•시간에 대한 예약 생성은 불가하다.
+- [x] 같은 날짜•시간•테마에 이미 예약이 있으면 중복 예약이 불가하다.
+- [x] 예약이 존재하는 시간•테마는 삭제할 수 없다.
+- [x] 유효하지 않은 입력값(빈 이름, 잘못된 날짜 형식 등)을 거부한다.
+- [x] 이미 지난 예약은 취소할 수 없다.
+- [x] 변경하려는 날짜•시간에 이미 예약이 있으면 변경할 수 없다.
+
+## API 명세
+
+### 사용자 API
+
+| 분류    | 기능           | Method   | URL                                                    | 성공 응답            | 에러 응답                                                               |
+|-------|--------------|----------|--------------------------------------------------------|------------------|---------------------------------------------------------------------|
+| 예약    | 예약 생성        | `POST`   | `/api/reservations`                                    | `201 Created`    | `400 Bad Request`, `404 Not Found`, `409 Conflict`                  |
+| 예약    | 예약 조회        | `GET`    | `/api/reservations`                                    | `200 OK`         | -                                                                   |
+| 예약    | 사용자별 예약 조회   | `GET`    | `/api/reservations?user_name={user_name}`              | `200 OK`         | -                                                                   |
+| 예약    | 예약 변경        | `PUT`    | `/api/reservations/{id}`                               | `200 OK`         | `400 Bad Request`, `403 Forbidden`, `404 Not Found`, `409 Conflict` |                          
+| 예약    | 예약 삭제        | `DELETE` | `/api/reservations/{id}`                               | `204 No Content` | `400 Bad Request`, `403 Forbidden`, `404 Not Found`                 |
+| 예약 시간 | 예약 시간 목록 조회  | `GET`    | `/api/times`                                           | `200 OK`         | -                                                                   |
+| 예약 시간 | 예약 가능한 시간 조회 | `GET`    | `/api/times/available?theme_id={theme_id}&date={date}` | `200 OK`         | `400 Bad Request`, `404 Not Found`                                  |
+| 테마    | 테마 목록 조회     | `GET`    | `/api/themes`                                          | `200 OK`         | -                                                                   |
+| 테마    | 인기 테마 조회     | `GET`    | `/api/themes/popular`                                  | `200 OK`         | -                                                                   |
+
+### 관리자 API
+
+| 분류    | 기능       | Method   | URL                            | 성공 응답            | 에러 응답                              |
+|-------|----------|----------|--------------------------------|------------------|------------------------------------|
+| 예약    | 예약 삭제    | `DELETE` | `/api/admin/reservations/{id}` | `204 No Content` | `400 Bad Request`, `404 Not Found` |
+| 예약 시간 | 예약 시간 생성 | `POST`   | `/api/admin/times`             | `201 Created`    | `400 Bad Request`, `409 Conflict`  |
+| 예약 시간 | 예약 시간 삭제 | `DELETE` | `/api/admin/times/{id}`        | `204 No Content` | `404 Not Found`, `409 Conflict`    |
+| 테마    | 테마 생성    | `POST`   | `/api/admin/themes`            | `201 Created`    | `400 Bad Request`, `409 Conflict`  |
+| 테마    | 테마 삭제    | `DELETE` | `/api/admin/themes/{id}`       | `204 No Content` | `404 Not Found`, `409 Conflict`    |
