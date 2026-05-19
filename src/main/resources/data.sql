@@ -64,3 +64,8 @@ INSERT INTO reservation (user_name, theme_id, date, time_id)
 VALUES ('아루', 2, '2026-05-12', 1);
 INSERT INTO reservation (user_name, theme_id, date, time_id)
 VALUES ('매트', 4, '2026-05-12', 3);
+
+INSERT INTO "user" (name, username, password) VALUES ('동키', 'donkey', 'password1');
+INSERT INTO "user" (name, username, password) VALUES ('그해', 'geuhai', 'password2');
+INSERT INTO "user" (name, username, password) VALUES ('아루', 'aru', 'password3');
+INSERT INTO "user" (name, username, password) VALUES ('매트', 'matt', 'password4');
