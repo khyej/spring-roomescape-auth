@@ -92,12 +92,21 @@ window.api = (function () {
         return all;
     }
 
-    return {
-        isLoggedIn: () => !!getToken(),
-        logout: () => {
+    async function logout() {
+        try {
+            await fetch('/api/auth/logout', {
+                method: 'POST',
+                headers: authHeaders()
+            });
+        } finally {
             localStorage.removeItem('token');
             location.href = '/login';
-        },
+        }
+    }
+
+    return {
+        isLoggedIn: () => !!getToken(),
+        logout,
 
         listThemes: async (page = 0, size = 10) => {
             const data = await getJson(`/api/themes?page=${page}&size=${size}`);
