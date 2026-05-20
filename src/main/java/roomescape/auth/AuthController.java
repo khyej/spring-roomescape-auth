@@ -24,4 +24,12 @@ public class AuthController {
     public ResponseEntity<LoginResponse> login(@RequestBody @Valid LoginRequest loginRequest) {
         return ResponseEntity.status(HttpStatus.OK).body(authService.login(loginRequest));
     }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(@Auth LoginUser loginUser,
+                                       jakarta.servlet.http.HttpServletRequest request) {
+        String token = BearerTokenExtractor.extract(request);
+        authService.logout(token);
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+    }
 }

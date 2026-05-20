@@ -10,8 +10,8 @@ import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
 import roomescape.auth.Auth;
 import roomescape.auth.AuthService;
+import roomescape.auth.BearerTokenExtractor;
 import roomescape.auth.LoginUser;
-import roomescape.exception.AuthenticationException;
 import roomescape.user.User;
 
 @Component
@@ -37,16 +37,8 @@ public class AuthArgumentResolver implements HandlerMethodArgumentResolver {
             WebDataBinderFactory binderFactory
     ) {
         HttpServletRequest request = (HttpServletRequest) webRequest.getNativeRequest();
-        String token = extractToken(request);
+        String token = BearerTokenExtractor.extract(request);
         User user = authService.authenticate(token);
         return new LoginUser(user.getId(), user.getName());
-    }
-
-    private String extractToken(HttpServletRequest request) {
-        String header = request.getHeader("Authorization");
-        if (header == null || !header.startsWith("Bearer ")) {
-            throw new AuthenticationException("인증 토큰이 없습니다.");
-        }
-        return header.substring(7);
     }
 }
