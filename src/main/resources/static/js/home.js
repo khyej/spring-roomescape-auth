@@ -4,14 +4,27 @@
     const PAGE_SIZE = 10;
     let themePage = 0;
     let hasMoreThemes = false;
+    let currentStoreId = null;
 
     document.addEventListener('DOMContentLoaded', async function () {
+        const storeSelect = document.getElementById('store-select');
+
         try {
-            const [themesPage, popular] = await Promise.all([
+            const [themesPage, popular, stores] = await Promise.all([
                 api.listThemes(0, PAGE_SIZE),
-                api.popularThemes()
+                api.popularThemes(),
+                api.listStores()
             ]);
             hasMoreThemes = themesPage.hasNext;
+
+            if (stores && storeSelect) {
+                stores.forEach(store => {
+                    const opt = document.createElement('option');
+                    opt.value = store.id;
+                    opt.textContent = store.name;
+                    storeSelect.appendChild(opt);
+                });
+            }
 
             const popularStrip = document.getElementById('popular-strip');
             const popularEmpty = document.getElementById('popular-empty');
@@ -19,6 +32,16 @@
             renderStrip(popular, popularStrip, popularEmpty, popularCount);
 
             renderThemesPage(themesPage.items);
+
+            if (storeSelect) {
+                storeSelect.addEventListener('change', async (e) => {
+                    currentStoreId = e.target.value || null;
+                    themePage = 0;
+                    const result = await api.listThemes(themePage, PAGE_SIZE, currentStoreId);
+                    hasMoreThemes = result.hasNext;
+                    renderThemesPage(result.items);
+                });
+            }
         } catch (e) {
             modal.alert({title: '데이터 로드 실패', message: e.message || '서버에 연결할 수 없습니다.'});
         }
@@ -63,7 +86,7 @@
     async function loadThemePage(delta) {
         themePage += delta;
         try {
-            const result = await api.listThemes(themePage, PAGE_SIZE);
+            const result = await api.listThemes(themePage, PAGE_SIZE, currentStoreId);
             hasMoreThemes = result.hasNext;
             renderThemesPage(result.items);
             document.getElementById('themes').scrollIntoView({behavior: 'smooth'});

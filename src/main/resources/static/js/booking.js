@@ -8,15 +8,13 @@
         }
 
         const params = new URLSearchParams(location.search);
-        const themeId = params.get('themeId');
-        if (!themeId) {
-            modal.alert({title: '오류', message: 'themeId가 필요합니다.'});
-            location.href = '/';
-            return;
-        }
+        let currentThemeId = params.get('themeId');
 
         const today = new Date().toISOString().slice(0, 10);
+        const storeSelect = document.getElementById('store');
+        const themeSelect = document.getElementById('theme');
         const dateInput = document.getElementById('date');
+        const dateSubmit = document.getElementById('date-submit');
         const dateForm = document.getElementById('date-form');
         const slotsArea = document.getElementById('slots-area');
         const slotsList = document.getElementById('slots-list');
@@ -32,29 +30,90 @@
             if (!dateInput.value) dateInput.value = today;
         }
 
+        let stores = [];
+        let allThemes = [];
+
         try {
-            const themes = await api.listAllThemes();
-            const theme = themes.find(t => String(t.id) === String(themeId));
-            if (!theme) {
-                modal.alert({title: '없는 사건', message: '해당 사건을 찾을 수 없습니다.'});
-                location.href = '/';
-                return;
+            [stores, allThemes] = await Promise.all([
+                api.listStores(),
+                api.listAllThemes()
+            ]);
+
+            stores.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s.id;
+                opt.textContent = s.name;
+                storeSelect.appendChild(opt);
+            });
+
+            if (currentThemeId) {
+                const theme = allThemes.find(t => String(t.id) === String(currentThemeId));
+                if (theme) {
+                    storeSelect.value = theme.storeId;
+                    await updateThemes(theme.storeId);
+                    themeSelect.value = currentThemeId;
+                    renderBanner(theme);
+                    enableDateSelection(true);
+                }
             }
-            renderBanner(theme);
         } catch (e) {
             modal.alert({title: '로드 실패', message: e.message});
-            return;
+        }
+
+        storeSelect.addEventListener('change', async (e) => {
+            const storeId = e.target.value;
+            currentThemeId = null;
+            enableDateSelection(false);
+            if (storeId) {
+                await updateThemes(storeId);
+            } else {
+                themeSelect.innerHTML = '<option value="">테마 선택...</option>';
+                themeSelect.disabled = true;
+            }
+            renderBanner(null);
+        });
+
+        themeSelect.addEventListener('change', (e) => {
+            currentThemeId = e.target.value;
+            if (currentThemeId) {
+                const theme = allThemes.find(t => String(t.id) === String(currentThemeId));
+                renderBanner(theme);
+                enableDateSelection(true);
+            } else {
+                renderBanner(null);
+                enableDateSelection(false);
+            }
+        });
+
+        async function updateThemes(storeId) {
+            const filteredThemes = allThemes.filter(t => String(t.storeId) === String(storeId));
+            themeSelect.innerHTML = '<option value="">테마 선택...</option>';
+            filteredThemes.forEach(t => {
+                const opt = document.createElement('option');
+                opt.value = t.id;
+                opt.textContent = t.name;
+                themeSelect.appendChild(opt);
+            });
+            themeSelect.disabled = false;
+        }
+
+        function enableDateSelection(enabled) {
+            dateInput.disabled = !enabled;
+            dateSubmit.disabled = !enabled;
+            if (!enabled) {
+                slotsArea.style.display = 'none';
+            }
         }
 
         dateForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const date = dateInput.value;
-            if (!date) return;
+            if (!date || !currentThemeId) return;
             if (date < today) {
                 await modal.alert({title: '잘못된 일자', message: '오늘 이후의 날짜만 선택할 수 있습니다.'});
                 return;
             }
-            await loadSlots(themeId, date);
+            await loadSlots(currentThemeId, date);
         });
 
         reserveForm.addEventListener('submit', async (e) => {
@@ -66,7 +125,7 @@
             }
             const fd = new FormData(reserveForm);
             const payload = {
-                themeId: Number(themeId),
+                themeId: Number(currentThemeId),
                 date: date,
                 timeId: Number(fd.get('timeId'))
             };
@@ -101,6 +160,8 @@
                         <label for="slot-${s.id}">${(s.startAt || '').slice(0, 5)}</label>
                     </div>
                 `).join('');
+                
+                // Do NOT scrollIntoView here to prevent jumping
             } catch (e) {
                 modal.alert({title: '시간 조회 실패', message: e.message});
             }
@@ -109,6 +170,10 @@
 
     function renderBanner(theme) {
         const banner = document.getElementById('case-banner');
+        if (!theme) {
+            banner.innerHTML = '';
+            return;
+        }
         const initial = (theme.name || '?').charAt(0);
         banner.innerHTML = `
             <div class="thumb" data-initial="${escapeAttr(initial)}">

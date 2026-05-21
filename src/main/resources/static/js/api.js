@@ -14,6 +14,7 @@ window.api = (function () {
         const headers = {'Accept': 'application/json', ...(auth ? authHeaders() : {})};
         const res = await fetch(url, {headers});
         if (res.status === 401) {
+            localStorage.removeItem('token');
             location.href = '/login';
             throw new Error('인증이 필요합니다.');
         }
@@ -29,6 +30,7 @@ window.api = (function () {
         };
         const res = await fetch(url, {method: 'POST', headers, body: JSON.stringify(body)});
         if (res.status === 401) {
+            localStorage.removeItem('token');
             location.href = '/login';
             throw new Error('인증이 필요합니다.');
         }
@@ -44,6 +46,7 @@ window.api = (function () {
         };
         const res = await fetch(url, {method: 'PUT', headers, body: JSON.stringify(body)});
         if (res.status === 401) {
+            localStorage.removeItem('token');
             location.href = '/login';
             throw new Error('인증이 필요합니다.');
         }
@@ -55,6 +58,7 @@ window.api = (function () {
         const headers = {...(auth ? authHeaders() : {})};
         const res = await fetch(url, {method: 'DELETE', headers});
         if (res.status === 401) {
+            localStorage.removeItem('token');
             location.href = '/login';
             throw new Error('인증이 필요합니다.');
         }
@@ -107,9 +111,18 @@ window.api = (function () {
     return {
         isLoggedIn: () => !!getToken(),
         logout,
+        getMe: () => getJson('/api/auth/me', true),
 
-        listThemes: async (page = 0, size = 10) => {
-            const data = await getJson(`/api/themes?page=${page}&size=${size}`);
+        listStores: () => getJson('/api/stores'),
+
+        listThemes: async (page = 0, size = 10, storeId = null) => {
+            let url = `/api/themes?page=${page}&size=${size}`;
+            if (storeId) url += `&storeId=${storeId}`;
+            const data = await getJson(url);
+            return {items: data.themes || [], hasNext: data.hasNext ?? false};
+        },
+        listThemesByAdmin: async (page = 0, size = 10) => {
+            const data = await getJson(`/api/admin/themes?page=${page}&size=${size}`, true);
             return {items: data.themes || [], hasNext: data.hasNext ?? false};
         },
         listAllThemes: () => fetchAllPages('/api/themes'),
@@ -118,6 +131,10 @@ window.api = (function () {
             return data.themes || [];
         },
 
+        listReservations: async (loginUser, page = 0, size = 10) => {
+            const data = await getJson(`/api/reservations?page=${page}&size=${size}`, true);
+            return {items: data.reservations || [], hasNext: data.hasNext ?? false};
+        },
         listMyReservations: async () => {
             const data = await getJson('/api/reservations/my', true);
             return {items: data.reservations || []};
@@ -126,19 +143,23 @@ window.api = (function () {
         createReservation: (payload) => postJson('/api/reservations', payload, true),
         deleteReservation: (id) => del('/api/reservations/' + id, true),
         updateReservation: (id, payload) => putJson('/api/reservations/' + id, payload, true),
-        deleteReservationByAdmin: (id) => del('/api/admin/reservations/' + id),
+        deleteReservationByAdmin: (id) => del('/api/admin/reservations/' + id, true),
 
         listTimes: async () => {
             const data = await getJson('/api/times');
+            return data.reservationTimes || [];
+        },
+        listTimesByAdmin: async () => {
+            const data = await getJson('/api/admin/times', true);
             return data.reservationTimes || [];
         },
         availableTimes: async (themeId, date) => {
             const data = await getJson('/api/times/available?theme_id=' + encodeURIComponent(themeId) + '&date=' + encodeURIComponent(date));
             return data.reservationTimes || [];
         },
-        createTheme: (payload) => postJson('/api/admin/themes', payload),
-        deleteTheme: (id) => del('/api/admin/themes/' + id),
-        createTime: (payload) => postJson('/api/admin/times', payload),
-        deleteTime: (id) => del('/api/admin/times/' + id)
+        createTheme: (payload) => postJson('/api/admin/themes', payload, true),
+        deleteTheme: (id) => del('/api/admin/themes/' + id, true),
+        createTime: (payload) => postJson('/api/admin/times', payload, true),
+        deleteTime: (id) => del('/api/admin/times/' + id, true)
     };
 })();

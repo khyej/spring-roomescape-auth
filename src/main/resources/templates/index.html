@@ -56,7 +56,13 @@
     <div class="section-label" id="themes">
         <span class="num">§ 02</span>
         <h2>전체 사건</h2>
-        <span class="meta">ALL · <span id="themes-count">0</span></span>
+        <div style="margin-left: auto; display: flex; align-items: center; gap: 0.5rem;">
+            <label for="store-select" style="font-size: 0.75rem; font-family: var(--font-mono); opacity: 0.7;">STORE</label>
+            <select id="store-select" class="btn btn-sm" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;">
+                <option value="">전체 매장</option>
+            </select>
+        </div>
+        <span class="meta" style="margin-left: 1rem;">ALL · <span id="themes-count">0</span></span>
     </div>
 
     <div class="file-grid" id="themes-grid"></div>

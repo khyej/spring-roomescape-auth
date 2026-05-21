@@ -6,19 +6,59 @@
     let hasMoreRes = false;
     let themePage = 0;
     let hasMoreThemes = false;
+    let storesCache = [];
+    let currentUser = null;
 
     document.addEventListener('DOMContentLoaded', async function () {
+        try {
+            currentUser = await api.getMe();
+            storesCache = await api.listStores();
+            
+            if (currentUser.role === 'ADMIN') {
+                setupStoreSelects();
+            }
+        } catch (e) {
+            console.error('Failed to load user or stores', e);
+        }
+
         await reloadAll();
         document.getElementById('theme-form').addEventListener('submit', onCreateTheme);
         document.getElementById('time-form').addEventListener('submit', onCreateTime);
     });
 
+    function setupStoreSelects() {
+        const themeField = document.getElementById('theme-store-field');
+        const timeField = document.getElementById('time-store-field');
+        
+        if (themeField) themeField.style.display = 'block';
+        if (timeField) timeField.style.display = 'block';
+        
+        const populate = (el) => {
+            if (!el) return;
+            storesCache.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s.id;
+                opt.textContent = s.name;
+                el.appendChild(opt);
+            });
+        };
+        
+        populate(document.getElementById('theme-store'));
+        populate(document.getElementById('time-store'));
+    }
+
+    function getStoreName(storeId) {
+        if (!storeId) return '-';
+        const store = storesCache.find(s => String(s.id) === String(storeId));
+        return store ? store.name : ('#' + storeId);
+    }
+
     async function reloadAll() {
         try {
             const [resResult, themesResult, times] = await Promise.all([
                 api.listReservations(null, resPage, PAGE_SIZE),
-                api.listThemes(themePage, PAGE_SIZE),
-                api.listTimes()
+                api.listThemesByAdmin(themePage, PAGE_SIZE),
+                api.listTimesByAdmin()
             ]);
             hasMoreRes = resResult.hasNext;
             hasMoreThemes = themesResult.hasNext;
@@ -46,6 +86,7 @@
             body.innerHTML = items.map(r => `
                 <tr data-id="${r.id}">
                     <td class="col-id">#${r.id}</td>
+                    <td>${escapeHtml(getStoreName(r.storeId))}</td>
                     <td>${escapeHtml(r.userName || '')}</td>
                     <td>${escapeHtml(r.theme && r.theme.name || '')}</td>
                     <td>${escapeHtml(r.date || '')}</td>
@@ -113,6 +154,7 @@
             body.innerHTML = items.map(t => `
                 <tr data-id="${t.id}">
                     <td class="col-id">#${t.id}</td>
+                    <td>${escapeHtml(getStoreName(t.storeId))}</td>
                     <td>${escapeHtml(t.name || '')}</td>
                     <td class="col-actions">
                         <button type="button" class="btn btn-danger btn-sm"
@@ -146,7 +188,7 @@
         if (themePage > 0) {
             document.getElementById('theme-prev').addEventListener('click', async () => {
                 themePage--;
-                const result = await api.listThemes(themePage, PAGE_SIZE);
+                const result = await api.listThemesByAdmin(themePage, PAGE_SIZE);
                 hasMoreThemes = result.hasNext;
                 renderThemes(result.items);
             });
@@ -154,7 +196,7 @@
         if (hasMoreThemes) {
             document.getElementById('theme-next').addEventListener('click', async () => {
                 themePage++;
-                const result = await api.listThemes(themePage, PAGE_SIZE);
+                const result = await api.listThemesByAdmin(themePage, PAGE_SIZE);
                 hasMoreThemes = result.hasNext;
                 renderThemes(result.items);
             });
@@ -178,6 +220,7 @@
         body.innerHTML = items.map(s => `
             <tr data-id="${s.id}">
                 <td class="col-id">#${s.id}</td>
+                <td>${escapeHtml(getStoreName(s.storeId))}</td>
                 <td>${escapeHtml((s.startAt || '').slice(0, 5))}</td>
                 <td class="col-actions">
                     <button type="button" class="btn btn-danger btn-sm"
@@ -216,13 +259,13 @@
                 hasMoreRes = refetched.hasNext;
                 renderReservations(refetched.items);
             } else if (kind === 'theme') {
-                const check = await api.listThemes(themePage, PAGE_SIZE);
+                const check = await api.listThemesByAdmin(themePage, PAGE_SIZE);
                 if (check.items.length === 0 && themePage > 0) themePage--;
-                const refetched = await api.listThemes(themePage, PAGE_SIZE);
+                const refetched = await api.listThemesByAdmin(themePage, PAGE_SIZE);
                 hasMoreThemes = refetched.hasNext;
                 renderThemes(refetched.items);
             } else {
-                const times = await api.listTimes();
+                const times = await api.listTimesByAdmin();
                 renderTimes(times);
             }
         } catch (e) {
@@ -236,17 +279,22 @@
         const payload = {
             name: (fd.get('name') || '').trim(),
             description: (fd.get('description') || '').trim(),
-            thumbnail: (fd.get('thumbnail') || '').trim()
+            thumbnail: (fd.get('thumbnail') || '').trim(),
+            storeId: fd.get('storeId') ? Number(fd.get('storeId')) : null
         };
         if (!payload.name || !payload.description || !payload.thumbnail) {
             await modal.alert({message: '모든 항목을 입력하세요.'});
+            return;
+        }
+        if (currentUser.role === 'ADMIN' && !payload.storeId) {
+            await modal.alert({message: '매장을 선택하세요.'});
             return;
         }
         try {
             await api.createTheme(payload);
             e.target.reset();
             themePage = 0;
-            const result = await api.listThemes(0, PAGE_SIZE);
+            const result = await api.listThemesByAdmin(0, PAGE_SIZE);
             hasMoreThemes = result.hasNext;
             renderThemes(result.items);
         } catch (err) {
@@ -258,14 +306,19 @@
         e.preventDefault();
         const fd = new FormData(e.target);
         const startAt = (fd.get('startAt') || '').trim();
+        const storeId = fd.get('storeId') ? Number(fd.get('storeId')) : null;
         if (!startAt) {
             await modal.alert({message: '시각을 입력하세요.'});
             return;
         }
+        if (currentUser.role === 'ADMIN' && !storeId) {
+            await modal.alert({message: '매장을 선택하세요.'});
+            return;
+        }
         try {
-            await api.createTime({startAt});
+            await api.createTime({startAt, storeId});
             e.target.reset();
-            const times = await api.listTimes();
+            const times = await api.listTimesByAdmin();
             renderTimes(times);
         } catch (err) {
             modal.alert({title: '등록 실패', message: err.message});

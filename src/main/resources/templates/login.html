@@ -6,26 +6,41 @@
 <header th:replace="~{fragments/site :: header('login')}"></header>
 
 <main>
-    <div class="section-label">
-        <span class="num">§ 01</span>
-        <h2>탐정 로그인</h2>
-        <span class="meta">AUTHENTICATION</span>
-    </div>
+    <section class="page-head" style="text-align: center;">
+        <span class="eyebrow">RESTRICTED ACCESS · BUREAU GATE</span>
+        <h1 style="margin-top: 0.8rem;">신원 확인</h1>
+        <p class="lead" style="margin: 0 auto;">
+            사건 명부에 접근하려면 탐정의 신원을 증명해야 합니다.<br>
+            인가되지 않은 접근은 기록됩니다.
+        </p>
+    </section>
 
-    <div class="gate-card">
-        <form id="login-form">
+    <div class="gate-card" style="margin-top: 0;">
+        <div style="margin-bottom: 2rem; border-bottom: 1px solid var(--rule-soft); padding-bottom: 1.5rem;">
+            <span class="eyebrow" style="color: var(--blood); letter-spacing: 0.5em;">ID CARD · FORM L-01</span>
+        </div>
+        
+        <form id="login-form" style="display: flex; flex-direction: column; gap: 1.5rem; max-width: 100%; text-align: left;">
             <div class="field">
-                <label for="username">아이디</label>
+                <label for="username">탐정 식별 코드 (ID)</label>
                 <input type="text" id="username" name="username" required autofocus
-                       placeholder="아이디 입력">
+                       placeholder="Identification Code">
             </div>
             <div class="field">
                 <label for="password">비밀번호</label>
                 <input type="password" id="password" name="password" required
-                       placeholder="비밀번호 입력">
+                       placeholder="Pass-phrase">
             </div>
-            <div class="form-actions">
-                <button type="submit" class="btn btn-primary">로그인</button>
+            
+            <div style="margin-top: 1rem; padding: 1.2rem; border: 1px dashed var(--rule); font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-mute); line-height: 1.5;">
+                * 대소문자를 구분합니다.<br>
+                * 분실 시 관리국에 직접 방문하여 재발급 받으십시오.
+            </div>
+
+            <div class="form-actions" style="justify-content: stretch; padding-top: 0; border: none;">
+                <button type="submit" class="btn btn-primary" style="flex: 1; justify-content: center; padding: 1rem;">
+                    인가 승인 및 진입 →
+                </button>
             </div>
         </form>
     </div>

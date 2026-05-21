@@ -22,7 +22,7 @@
                th:classappend="${active == 'home'} ? 'is-active' : ''">사건 일람</a>
             <a th:href="@{/reservations}"
                th:classappend="${active == 'reservations'} ? 'is-active' : ''">예약 명부</a>
-            <a th:href="@{/console}"
+            <a th:href="@{/console}" id="nav-console"
                th:classappend="${active == 'console'} ? 'is-active' : ''">관리국</a>
             <a th:href="@{/login}" id="nav-login"
                th:classappend="${active == 'login'} ? 'is-active' : ''">로그인</a>
@@ -71,10 +71,22 @@
     <script th:src="@{/js/api.js}"></script>
     <script th:src="@{/js/confirm-modal.js}"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', async function () {
+            const consoleBtn = document.getElementById('nav-console');
+            if (consoleBtn) consoleBtn.style.display = 'none';
+
             if (api.isLoggedIn()) {
                 document.getElementById('nav-login').style.display = 'none';
                 document.getElementById('nav-logout').style.display = '';
+
+                try {
+                    const me = await api.getMe();
+                    if (me && (me.role === 'ADMIN' || me.role === 'MANAGER')) {
+                        if (consoleBtn) consoleBtn.style.display = '';
+                    }
+                } catch (e) {
+                    console.error('Failed to fetch user info', e);
+                }
             }
         });
     </script>

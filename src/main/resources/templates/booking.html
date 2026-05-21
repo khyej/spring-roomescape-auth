@@ -11,6 +11,29 @@
 
     <div class="section-label">
         <span class="num">§ 01</span>
+        <h2>사건 선택</h2>
+        <span class="meta">SELECT INVESTIGATION STORE & THEME</span>
+    </div>
+
+    <form id="selection-form" class="form-card">
+        <div class="split-2">
+            <div class="field">
+                <label for="store">매장</label>
+                <select id="store" name="storeId" class="btn" style="width: 100%; text-align: left;" required>
+                    <option value="">매장 선택...</option>
+                </select>
+            </div>
+            <div class="field">
+                <label for="theme">사건 (테마)</label>
+                <select id="theme" name="themeId" class="btn" style="width: 100%; text-align: left;" required disabled>
+                    <option value="">테마 선택...</option>
+                </select>
+            </div>
+        </div>
+    </form>
+
+    <div class="section-label">
+        <span class="num">§ 02</span>
         <h2>일자 선택</h2>
         <span class="meta">SELECT INVESTIGATION DATE</span>
     </div>
@@ -19,8 +42,8 @@
         <div class="field" style="margin-bottom: 0;">
             <label for="date">조사 일자</label>
             <div class="inline-control">
-                <input type="date" id="date" name="date" required>
-                <button type="submit" class="btn btn-primary">시간 조회 →</button>
+                <input type="date" id="date" name="date" required disabled>
+                <button type="submit" class="btn btn-primary" id="date-submit" disabled>시간 조회 →</button>
             </div>
             <span class="field-help">오늘 (<span id="today-label"></span>) 이후 날짜만 선택 가능</span>
         </div>
@@ -28,7 +51,7 @@
 
     <section id="slots-area" style="display: none;">
         <div class="section-label">
-            <span class="num">§ 02</span>
+            <span class="num">§ 03</span>
             <h2>시간 슬롯</h2>
             <span class="meta">
                 <span id="slots-date"></span> · 가용 <span id="slots-count">0</span>건

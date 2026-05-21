@@ -15,11 +15,19 @@
 
         ledgerSection.style.display = '';
 
+        let storesCache = [];
+
         try {
+            storesCache = await api.listStores();
             const result = await api.listMyReservations();
             renderLedger(result.items);
         } catch (e) {
             modal.alert({title: '조회 실패', message: e.message});
+        }
+
+        function getStoreName(storeId) {
+            const store = storesCache.find(s => String(s.id) === String(storeId));
+            return store ? store.name : ('#' + storeId);
         }
 
         function renderLedger(items) {
@@ -36,6 +44,7 @@
             ledgerBody.innerHTML = items.map(r => `
                 <tr data-id="${r.id}">
                     <td class="col-id">#${r.id}</td>
+                    <td>${escapeHtml(getStoreName(r.storeId))}</td>
                     <td>${escapeHtml(r.theme && r.theme.name || '')}</td>
                     <td>${escapeHtml(r.date || '')}</td>
                     <td>${escapeHtml((r.time && r.time.startAt || '').slice(0, 5))}</td>
@@ -85,14 +94,7 @@
             if (updatePanel) updatePanel.remove();
 
             const today = new Date().toISOString().slice(0, 10);
-            let times = [];
-            try {
-                times = await api.listTimes();
-            } catch (e) {
-                modal.alert({title: '시간 조회 실패', message: e.message});
-                return;
-            }
-
+            
             const panel = document.createElement('div');
             panel.id = 'update-panel';
             panel.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999;';
@@ -104,17 +106,45 @@
                                style="display:block;width:100%;margin-top:0.3rem;">
                     </label>
                     <label>시간
-                        <select id="update-time" style="display:block;width:100%;margin-top:0.3rem;">
-                            ${times.map(t => `<option value="${t.id}" ${String(t.id) === String(dataset.timeId) ? 'selected' : ''}>${(t.startAt || '').slice(0, 5)}</option>`).join('')}
+                        <select id="update-time" style="display:block;width:100%;margin-top:0.3rem;" disabled>
+                            <option value="">조회 중...</option>
                         </select>
                     </label>
                     <div style="display:flex;gap:0.5rem;justify-content:flex-end;">
                         <button id="update-cancel" class="btn btn-ghost btn-sm">취소</button>
-                        <button id="update-ok" class="btn btn-primary btn-sm">변경 확정</button>
+                        <button id="update-ok" class="btn btn-primary btn-sm" disabled>변경 확정</button>
                     </div>
                 </div>
             `;
             document.body.appendChild(panel);
+
+            const updateDateInput = document.getElementById('update-date');
+            const updateTimeSelect = document.getElementById('update-time');
+            const updateOkBtn = document.getElementById('update-ok');
+
+            const refreshTimes = async () => {
+                const date = updateDateInput.value;
+                if (!date) return;
+                updateTimeSelect.disabled = true;
+                updateOkBtn.disabled = true;
+                updateTimeSelect.innerHTML = '<option value="">조회 중...</option>';
+                try {
+                    const times = await api.availableTimes(dataset.themeId, date);
+                    updateTimeSelect.innerHTML = times.map(t => `<option value="${t.id}">${(t.startAt || '').slice(0, 5)}</option>`).join('');
+                    if (times.length === 0) {
+                        updateTimeSelect.innerHTML = '<option value="">가능한 시간 없음</option>';
+                    } else {
+                        updateTimeSelect.disabled = false;
+                        updateOkBtn.disabled = false;
+                    }
+                } catch (e) {
+                    updateTimeSelect.innerHTML = '<option value="">오류 발생</option>';
+                    console.error(e);
+                }
+            };
+
+            updateDateInput.addEventListener('change', refreshTimes);
+            await refreshTimes();
 
             document.getElementById('update-cancel').addEventListener('click', () => panel.remove());
 
