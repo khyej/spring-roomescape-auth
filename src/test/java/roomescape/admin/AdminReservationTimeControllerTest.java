@@ -1,5 +1,7 @@
 package roomescape.admin;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willDoNothing;
 import static org.mockito.BDDMockito.willThrow;
@@ -40,7 +42,7 @@ class AdminReservationTimeControllerTest {
     private AuthService authService;
 
     private static final String TOKEN = "Bearer test-token";
-    private static final User TEST_USER = new User(1L, "관리자", "admin", "admin1234");
+    private static final User TEST_USER = new User(1L, "관리자", "admin", "admin1234", roomescape.user.Role.MANAGER, 1L);
 
     private void givenAuthenticated() {
         given(authService.authenticate("test-token")).willReturn(TEST_USER);
@@ -63,7 +65,7 @@ class AdminReservationTimeControllerTest {
     void 예약시간_삭제() throws Exception {
         givenAuthenticated();
         willDoNothing()
-                .given(reservationTimeService).delete(1L);
+                .given(reservationTimeService).delete(any(), anyLong());
 
         mockMvc.perform(delete("/api/admin/times/1")
                         .header("Authorization", TOKEN))
@@ -87,7 +89,7 @@ class AdminReservationTimeControllerTest {
     void 사용_중인_예약시간_삭제시_409() throws Exception {
         givenAuthenticated();
         willThrow(new AlreadyInUseException("예약 시간에 해당하는 예약이 있습니다."))
-                .given(reservationTimeService).delete(1L);
+                .given(reservationTimeService).delete(any(), anyLong());
 
         mockMvc.perform(delete("/api/admin/times/1")
                         .header("Authorization", TOKEN))

@@ -30,11 +30,11 @@ class ReservationTimeControllerTest {
     void 예약시간_조회() throws Exception {
         given(reservationTimeService.read())
                 .willReturn(ReservationTimesResponse.from(List.of(
-                        new ReservationTimeResponse(1L, LocalTime.of(10, 00)),
-                        new ReservationTimeResponse(2L, LocalTime.of(11, 00)),
-                        new ReservationTimeResponse(3L, LocalTime.of(12, 00)),
-                        new ReservationTimeResponse(4L, LocalTime.of(13, 00)),
-                        new ReservationTimeResponse(5L, LocalTime.of(14, 00))
+                        new ReservationTimeResponse(1L, LocalTime.of(10, 0), 1L),
+                        new ReservationTimeResponse(2L, LocalTime.of(11, 0), 1L),
+                        new ReservationTimeResponse(3L, LocalTime.of(12, 0), 1L),
+                        new ReservationTimeResponse(4L, LocalTime.of(13, 0), 1L),
+                        new ReservationTimeResponse(5L, LocalTime.of(14, 0), 1L)
                 )));
 
         mockMvc.perform(get("/api/times"))
@@ -46,8 +46,8 @@ class ReservationTimeControllerTest {
     void 예약_가능한_시간_조회() throws Exception {
         given(reservationTimeService.readAvailableTimes(1L, LocalDate.of(2026, 05, 10)))
                 .willReturn(ReservationTimesResponse.from(List.of(
-                        new ReservationTimeResponse(1L, LocalTime.of(10, 00)),
-                        new ReservationTimeResponse(2L, LocalTime.of(11, 00))
+                        new ReservationTimeResponse(1L, LocalTime.of(10, 0), 1L),
+                        new ReservationTimeResponse(2L, LocalTime.of(11, 0), 1L)
                 )));
 
         mockMvc.perform(get("/api/times/available")

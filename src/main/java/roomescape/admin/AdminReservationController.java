@@ -6,6 +6,8 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import roomescape.auth.Auth;
+import roomescape.auth.LoginUser;
 import roomescape.reservation.ReservationService;
 
 @RestController
@@ -18,8 +20,8 @@ public class AdminReservationController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable long id) {
-        reservationService.deleteByAdmin(id);
+    public ResponseEntity<Void> delete(@Auth LoginUser loginUser, @PathVariable long id) {
+        reservationService.deleteByAdmin(loginUser, id);
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 }

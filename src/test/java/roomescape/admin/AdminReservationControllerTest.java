@@ -1,5 +1,7 @@
 package roomescape.admin;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willThrow;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -32,7 +34,7 @@ class AdminReservationControllerTest {
     private AuthService authService;
 
     private static final String TOKEN = "Bearer test-token";
-    private static final User TEST_USER = new User(1L, "관리자", "admin", "admin1234");
+    private static final User TEST_USER = new User(1L, "관리자", "admin", "admin1234", roomescape.user.Role.MANAGER, 1L);
 
     private void givenAuthenticated() {
         given(authService.authenticate("test-token")).willReturn(TEST_USER);
@@ -51,7 +53,7 @@ class AdminReservationControllerTest {
     void 지난_날짜_예약_삭제시_400() throws Exception {
         givenAuthenticated();
         willThrow(new InvalidStateException("이미 지난 날짜와 시간입니다."))
-                .given(reservationService).deleteByAdmin(1L);
+                .given(reservationService).deleteByAdmin(any(), anyLong());
 
         mockMvc.perform(delete("/api/admin/reservations/1")
                         .header("Authorization", TOKEN))
@@ -62,7 +64,7 @@ class AdminReservationControllerTest {
     void 존재하지_않는_예약_삭제시_404() throws Exception {
         givenAuthenticated();
         willThrow(new NotFoundException("예약을 찾을 수 없습니다."))
-                .given(reservationService).deleteByAdmin(1L);
+                .given(reservationService).deleteByAdmin(any(), anyLong());
 
         mockMvc.perform(delete("/api/admin/reservations/1")
                         .header("Authorization", TOKEN))
