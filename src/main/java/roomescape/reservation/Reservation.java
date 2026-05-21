@@ -14,18 +14,20 @@ public class Reservation {
     private final Theme theme;
     private final LocalDate date;
     private final ReservationTime time;
+    private final Long storeId;
 
-    public Reservation(String userName, Theme theme, LocalDate date, ReservationTime time) {
-        this(null, userName, theme, date, time);
+    public Reservation(String userName, Theme theme, LocalDate date, ReservationTime time, Long storeId) {
+        this(null, userName, theme, date, time, storeId);
     }
 
-    public Reservation(Long id, String userName, Theme theme, LocalDate date, ReservationTime time) {
+    public Reservation(Long id, String userName, Theme theme, LocalDate date, ReservationTime time, Long storeId) {
         validate(userName, theme, date, time);
         this.id = id;
         this.userName = userName;
         this.theme = theme;
         this.date = date;
         this.time = time;
+        this.storeId = storeId;
     }
 
     public Long getId() {
@@ -48,6 +50,10 @@ public class Reservation {
         return time;
     }
 
+    public Long getStoreId() {
+        return storeId;
+    }
+
     public void validateNotPast(LocalDateTime now) {
         if (LocalDateTime.of(date, time.getStartAt()).isBefore(now)) {
             throw new InvalidStateException("이미 지난 날짜와 시간입니다.");
@@ -57,6 +63,12 @@ public class Reservation {
     public void validateOwner(String userName) {
         if (!this.userName.equals(userName)) {
             throw new ForbiddenException("본인의 예약만 변경•삭제할 수 있습니다.");
+        }
+    }
+
+    public void validateStore(Long storeId) {
+        if (this.storeId == null || !this.storeId.equals(storeId)) {
+            throw new ForbiddenException("해당 매장의 예약만 관리할 수 있습니다.");
         }
     }
 

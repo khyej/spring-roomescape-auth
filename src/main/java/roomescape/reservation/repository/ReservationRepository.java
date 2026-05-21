@@ -10,6 +10,8 @@ public interface ReservationRepository {
 
     List<Reservation> findAll(int page, int size);
 
+    List<Reservation> findAllByStoreId(Long storeId, int page, int size);
+
     Optional<Reservation> findById(long id);
 
     List<Reservation> findByUserName(String name);

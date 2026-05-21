@@ -42,10 +42,11 @@ public class ReservationController {
 
     @GetMapping
     public ResponseEntity<PageReservationsResponse> read(
+            @Auth LoginUser loginUser,
             @RequestParam(defaultValue = "0") @Min(0) int page,
             @RequestParam(defaultValue = "10") @Max(100) int size
     ) {
-        return ResponseEntity.status(HttpStatus.OK).body(reservationService.read(page, size));
+        return ResponseEntity.status(HttpStatus.OK).body(reservationService.read(loginUser, page, size));
     }
 
     @GetMapping("/my")

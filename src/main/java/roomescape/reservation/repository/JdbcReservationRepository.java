@@ -25,13 +25,16 @@ public class JdbcReservationRepository implements ReservationRepository {
                     resultSet.getLong("theme_id"),
                     resultSet.getString("theme_name"),
                     resultSet.getString("theme_description"),
-                    resultSet.getString("theme_thumbnail")
+                    resultSet.getString("theme_thumbnail"),
+                    resultSet.getLong("theme_store_id")
             ),
             resultSet.getObject("date", LocalDate.class),
             new ReservationTime(
                     resultSet.getLong("time_id"),
-                    resultSet.getObject("start_at", LocalTime.class)
-            )
+                    resultSet.getObject("start_at", LocalTime.class),
+                    resultSet.getLong("time_store_id")
+            ),
+            resultSet.getLong("store_id")
     );
 
     public JdbcReservationRepository(JdbcTemplate jdbcTemplate) {
@@ -40,7 +43,7 @@ public class JdbcReservationRepository implements ReservationRepository {
 
     @Override
     public Reservation save(Reservation reservation) {
-        String sql = "INSERT INTO reservation(user_name,theme_id, date, time_id) VALUES (?,?,?,?)";
+        String sql = "INSERT INTO reservation(user_name,theme_id, date, time_id, store_id) VALUES (?,?,?,?,?)";
         KeyHolder keyHolder = new GeneratedKeyHolder();
         jdbcTemplate.update(con -> {
             PreparedStatement psmt = con.prepareStatement(sql, new String[]{"id"});
@@ -48,20 +51,21 @@ public class JdbcReservationRepository implements ReservationRepository {
             psmt.setLong(2, reservation.getTheme().getId());
             psmt.setObject(3, reservation.getDate());
             psmt.setLong(4, reservation.getTime().getId());
+            psmt.setLong(5, reservation.getStoreId());
 
             return psmt;
         }, keyHolder);
 
         Long id = keyHolder.getKey().longValue();
         return new Reservation(id, reservation.getUserName(), reservation.getTheme(), reservation.getDate(),
-                reservation.getTime());
+                reservation.getTime(), reservation.getStoreId());
     }
 
     @Override
     public List<Reservation> findAll(int page, int size) {
         String sql = """
-                SELECT r.id, r.user_name, r.date, t.id as time_id, t.start_at, c.id as theme_id,
-                c.name as theme_name, c.description as theme_description, c.thumbnail as theme_thumbnail
+                SELECT r.id, r.user_name, r.date, r.store_id, t.id as time_id, t.start_at, t.store_id as time_store_id, c.id as theme_id,
+                c.name as theme_name, c.description as theme_description, c.thumbnail as theme_thumbnail, c.store_id as theme_store_id
                 FROM reservation r INNER JOIN reservation_time t ON r.time_id = t.id INNER JOIN theme c ON r.theme_id = c.id
                 LIMIT ? OFFSET ? 
                 """;
@@ -70,10 +74,23 @@ public class JdbcReservationRepository implements ReservationRepository {
     }
 
     @Override
+    public List<Reservation> findAllByStoreId(Long storeId, int page, int size) {
+        String sql = """
+                SELECT r.id, r.user_name, r.date, r.store_id, t.id as time_id, t.start_at, t.store_id as time_store_id, c.id as theme_id,
+                c.name as theme_name, c.description as theme_description, c.thumbnail as theme_thumbnail, c.store_id as theme_store_id
+                FROM reservation r INNER JOIN reservation_time t ON r.time_id = t.id INNER JOIN theme c ON r.theme_id = c.id
+                WHERE r.store_id = ?
+                LIMIT ? OFFSET ? 
+                """;
+        int offset = page * size;
+        return jdbcTemplate.query(sql, reservationRowMapper, storeId, size, offset);
+    }
+
+    @Override
     public Optional<Reservation> findById(long id) {
         String sql = """
-                SELECT r.id, r.user_name, r.date, t.id as time_id, t.start_at, c.id as theme_id,
-                c.name as theme_name, c.description as theme_description, c.thumbnail as theme_thumbnail
+                SELECT r.id, r.user_name, r.date, r.store_id, t.id as time_id, t.start_at, t.store_id as time_store_id, c.id as theme_id,
+                c.name as theme_name, c.description as theme_description, c.thumbnail as theme_thumbnail, c.store_id as theme_store_id
                 FROM reservation r
                 INNER JOIN reservation_time t ON r.time_id = t.id INNER JOIN theme c ON r.theme_id = c.id
                 WHERE r.id = ?
@@ -85,8 +102,8 @@ public class JdbcReservationRepository implements ReservationRepository {
     @Override
     public List<Reservation> findByUserName(String userName) {
         String sql = """
-                SELECT r.id, r.user_name, r.date, t.id as time_id, t.start_at, c.id as theme_id,
-                c.name as theme_name, c.description as theme_description, c.thumbnail as theme_thumbnail
+                SELECT r.id, r.user_name, r.date, r.store_id, t.id as time_id, t.start_at, t.store_id as time_store_id, c.id as theme_id,
+                c.name as theme_name, c.description as theme_description, c.thumbnail as theme_thumbnail, c.store_id as theme_store_id
                 FROM reservation r
                 INNER JOIN reservation_time t ON r.time_id = t.id INNER JOIN theme c ON r.theme_id = c.id
                 WHERE r.user_name = ?
@@ -99,8 +116,8 @@ public class JdbcReservationRepository implements ReservationRepository {
     @Override
     public List<Reservation> findByThemeAndDate(long themeId, LocalDate date) {
         String sql = """
-                SELECT r.id, r.user_name, r.date, t.id as time_id, t.start_at, c.id as theme_id,
-                c.name as theme_name, c.description as theme_description, c.thumbnail as theme_thumbnail
+                SELECT r.id, r.user_name, r.date, r.store_id, t.id as time_id, t.start_at, t.store_id as time_store_id, c.id as theme_id,
+                c.name as theme_name, c.description as theme_description, c.thumbnail as theme_thumbnail, c.store_id as theme_store_id
                 FROM reservation r
                 INNER JOIN reservation_time t ON r.time_id = t.id
                 INNER JOIN theme c ON r.theme_id = c.id
@@ -112,9 +129,9 @@ public class JdbcReservationRepository implements ReservationRepository {
 
     @Override
     public void update(Reservation reservation) {
-        String sql = "UPDATE reservation SET theme_id = ?, date = ?, time_id = ? WHERE id = ?";
+        String sql = "UPDATE reservation SET theme_id = ?, date = ?, time_id = ?, store_id = ? WHERE id = ?";
         jdbcTemplate.update(sql, reservation.getTheme().getId(), reservation.getDate(), reservation.getTime().getId(),
-                reservation.getId());
+                reservation.getStoreId(), reservation.getId());
     }
 
     @Override

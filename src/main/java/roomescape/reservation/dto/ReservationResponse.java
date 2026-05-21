@@ -6,7 +6,7 @@ import roomescape.theme.dto.ThemeResponse;
 import roomescape.time.dto.ReservationTimeResponse;
 
 public record ReservationResponse(long id, String userName, ThemeResponse theme, LocalDate date,
-                                  ReservationTimeResponse time) {
+                                  ReservationTimeResponse time, Long storeId) {
 
     public static ReservationResponse from(Reservation reservation) {
         return new ReservationResponse(
@@ -14,7 +14,8 @@ public record ReservationResponse(long id, String userName, ThemeResponse theme,
                 reservation.getUserName(),
                 ThemeResponse.from(reservation.getTheme()),
                 reservation.getDate(),
-                ReservationTimeResponse.from(reservation.getTime())
+                ReservationTimeResponse.from(reservation.getTime()),
+                reservation.getStoreId()
         );
     }
 }

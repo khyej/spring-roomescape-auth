@@ -23,16 +23,16 @@ class JdbcReservationRepositoryTest {
 
         List<Reservation> reservations = reservationRepository.findByUserName(userName);
 
-        assertThat(reservations.size()).isEqualTo(5);
+        assertThat(reservations.size()).isEqualTo(2);
     }
 
     @Test
     void 테마와_날짜로_예약_목록_조회() {
-        long themeId = 2L;
+        long themeId = 1L;
         LocalDate date = LocalDate.of(2026, 05, 10);
 
         List<Reservation> reservations = reservationRepository.findByThemeAndDate(themeId, date);
 
-        assertThat(reservations.getFirst().getId()).isEqualTo(4);
+        assertThat(reservations.getFirst().getId()).isEqualTo(1);
     }
 }

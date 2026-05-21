@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import roomescape.auth.LoginUser;
 import roomescape.exception.AlreadyInUseException;
+import roomescape.exception.ForbiddenException;
 import roomescape.exception.NotFoundException;
 import roomescape.reservation.dto.PageReservationsResponse;
 import roomescape.reservation.dto.ReservationRequest;
@@ -41,11 +42,14 @@ public class ReservationService {
         ReservationTime reservationTime = getReservationTime(reservationRequest);
         Theme theme = getTheme(reservationRequest);
 
+        validateStoreConsistency(theme, reservationTime);
+
         Reservation reservation = new Reservation(
                 loginUser.name(),
                 theme,
                 reservationRequest.date(),
-                reservationTime
+                reservationTime,
+                theme.getStoreId()
         );
 
         reservation.validateNotPast(LocalDateTime.now(clock));
@@ -59,18 +63,24 @@ public class ReservationService {
     public ReservationResponse update(long id, ReservationRequest reservationRequest, LoginUser loginUser) {
         Reservation reservation = getReservation(id);
 
-        reservation.validateOwner(loginUser.name());
+        validateAccess(reservation, loginUser);
         reservation.validateNotPast(LocalDateTime.now(clock));
 
         ReservationTime reservationTime = getReservationTime(reservationRequest);
         Theme theme = getTheme(reservationRequest);
+
+        validateStoreConsistency(theme, reservationTime);
+        if (loginUser.isManager()) {
+            theme.validateStore(loginUser.storeId());
+        }
 
         Reservation updateReservation = new Reservation(
                 id,
                 reservation.getUserName(),
                 theme,
                 reservationRequest.date(),
-                reservationTime
+                reservationTime,
+                theme.getStoreId()
         );
 
         updateReservation.validateNotPast(LocalDateTime.now(clock));
@@ -83,13 +93,22 @@ public class ReservationService {
     @Transactional
     public void delete(Long id, LoginUser loginUser) {
         Reservation reservation = getReservation(id);
-        reservation.validateOwner(loginUser.name());
+        validateAccess(reservation, loginUser);
         reservation.validateNotPast(LocalDateTime.now(clock));
         reservationRepository.deleteById(id);
     }
 
-    public PageReservationsResponse read(int page, int size) {
-        List<ReservationResponse> reservationsResponse = reservationRepository.findAll(page, size + 1).stream()
+    public PageReservationsResponse read(LoginUser loginUser, int page, int size) {
+        List<Reservation> reservations;
+        if (loginUser.isAdmin()) {
+            reservations = reservationRepository.findAll(page, size + 1);
+        } else if (loginUser.isManager()) {
+            reservations = reservationRepository.findAllByStoreId(loginUser.storeId(), page, size + 1);
+        } else {
+            throw new ForbiddenException("예약 목록 조회 권한이 없습니다.");
+        }
+
+        List<ReservationResponse> reservationsResponse = reservations.stream()
                 .map(ReservationResponse::from)
                 .toList();
 
@@ -110,9 +129,15 @@ public class ReservationService {
     }
 
     @Transactional
-    public void deleteByAdmin(Long id) {
+    public void deleteByAdmin(LoginUser loginUser, Long id) {
         Reservation reservation = getReservation(id);
 
+        if (!loginUser.isManagerOrAdmin()) {
+            throw new ForbiddenException("관리자만 삭제할 수 있습니다.");
+        }
+        if (!loginUser.isAdmin()) {
+            reservation.validateStore(loginUser.storeId());
+        }
         reservation.validateNotPast(LocalDateTime.now(clock));
 
         reservationRepository.deleteById(id);
@@ -133,6 +158,21 @@ public class ReservationService {
                 .orElseThrow(() -> new NotFoundException("예약 시간을 찾을 수 없습니다."));
     }
 
+    private void validateStoreConsistency(Theme theme, ReservationTime reservationTime) {
+        if (!theme.getStoreId().equals(reservationTime.getStoreId())) {
+            throw new roomescape.exception.InvalidStateException("테마와 예약 시간의 매장이 일치하지 않습니다.");
+        }
+    }
+
+    private void validateAccess(Reservation reservation, LoginUser loginUser) {
+        if (loginUser.isAdmin()) {
+            return;
+        }
+        if (loginUser.isManager() && reservation.getStoreId().equals(loginUser.storeId())) {
+            return;
+        }
+        reservation.validateOwner(loginUser.name());
+    }
 
     private void validateDuplicate(Reservation reservation) {
         if (reservationRepository.existsByThemeIdAndDateAndTimeId(

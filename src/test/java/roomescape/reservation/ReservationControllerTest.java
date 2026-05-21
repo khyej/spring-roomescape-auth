@@ -54,7 +54,7 @@ class ReservationControllerTest {
     private AuthService authService;
 
     private static final String TOKEN = "Bearer test-token";
-    private static final User TEST_USER = new User(1L, "동키", "donkey", "password1");
+    private static final User TEST_USER = new User(1L, "동키", "donkey", "password1", roomescape.user.Role.USER, null);
 
     private void givenAuthenticated() {
         given(authService.authenticate("test-token")).willReturn(TEST_USER);
@@ -62,20 +62,22 @@ class ReservationControllerTest {
 
     @Test
     void 예약_조회() throws Exception {
-        given(reservationService.read(0, 10))
+        givenAuthenticated();
+        given(reservationService.read(any(), any(Integer.class), any(Integer.class)))
                 .willReturn(PageReservationsResponse.from(List.of(), 0, 0, false));
 
-        mockMvc.perform(get("/api/reservations"))
+        mockMvc.perform(get("/api/reservations")
+                        .header("Authorization", TOKEN))
                 .andExpect(status().isOk());
     }
 
     @Test
     void 사용자_예약_조회() throws Exception {
         givenAuthenticated();
-        ReservationTimeResponse timeResponse = new ReservationTimeResponse(1L, LocalTime.of(10, 0));
-        ThemeResponse themeResponse = new ThemeResponse(1L, "공포의 방", "무서운 방", "http://s3.com");
+        ReservationTimeResponse timeResponse = new ReservationTimeResponse(1L, LocalTime.of(10, 0), 1L);
+        ThemeResponse themeResponse = new ThemeResponse(1L, "공포의 방", "무서운 방", "http://s3.com", 1L);
         ReservationResponse reservationResponse = new ReservationResponse(
-                1L, "동키", themeResponse, LocalDate.of(2026, 6, 1), timeResponse
+                1L, "동키", themeResponse, LocalDate.of(2026, 6, 1), timeResponse, 1L
         );
         given(reservationService.readByUserName("동키"))
                 .willReturn(ReservationsResponse.from(List.of(reservationResponse)));
@@ -104,10 +106,10 @@ class ReservationControllerTest {
     @Test
     void 예약_변경() throws Exception {
         givenAuthenticated();
-        ThemeResponse themeResponse = new ThemeResponse(1L, "공포의 방", "무서운 방", "http://s3.com");
-        ReservationTimeResponse timeResponse = new ReservationTimeResponse(2L, LocalTime.of(11, 0));
+        ThemeResponse themeResponse = new ThemeResponse(1L, "공포의 방", "무서운 방", "http://s3.com", 1L);
+        ReservationTimeResponse timeResponse = new ReservationTimeResponse(2L, LocalTime.of(11, 0), 1L);
         ReservationResponse reservationResponse = new ReservationResponse(
-                1L, "동키", themeResponse, LocalDate.of(2026, 6, 1), timeResponse
+                1L, "동키", themeResponse, LocalDate.of(2026, 6, 1), timeResponse, 1L
         );
         given(reservationService.update(anyLong(), any(), any()))
                 .willReturn(reservationResponse);

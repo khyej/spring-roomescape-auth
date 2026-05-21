@@ -25,7 +25,7 @@ class JdbcThemeRepositoryTest {
 
         List<Theme> themes = themeRepository.findPopularThemes(start, end, limit);
 
-        assertThat(themes).hasSize(5);
+        assertThat(themes).hasSize(3);
         assertThat(themes.getFirst().getId()).isEqualTo(1L);
     }
 }

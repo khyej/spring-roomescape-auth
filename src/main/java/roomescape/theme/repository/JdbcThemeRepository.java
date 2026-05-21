@@ -17,7 +17,8 @@ public class JdbcThemeRepository implements ThemeRepository {
     private final RowMapper<Theme> themeRowMapper = (resultSet, rowNum) -> new Theme(resultSet.getLong("id"),
             resultSet.getString("name"),
             resultSet.getString("description"),
-            resultSet.getString("thumbnail"));
+            resultSet.getString("thumbnail"),
+            resultSet.getLong("store_id"));
 
     private final JdbcTemplate jdbcTemplate;
 
@@ -27,31 +28,39 @@ public class JdbcThemeRepository implements ThemeRepository {
 
     @Override
     public Theme save(Theme theme) {
-        String sql = "INSERT INTO theme(name, description, thumbnail) VALUES (?,?,?)";
+        String sql = "INSERT INTO theme(name, description, thumbnail, store_id) VALUES (?,?,?,?)";
         KeyHolder keyHolder = new GeneratedKeyHolder();
         jdbcTemplate.update(con -> {
             PreparedStatement psmt = con.prepareStatement(sql, new String[]{"id"});
             psmt.setString(1, theme.getName());
             psmt.setString(2, theme.getDescription());
             psmt.setString(3, theme.getThumbnail());
+            psmt.setLong(4, theme.getStoreId());
 
             return psmt;
         }, keyHolder);
 
         Long id = keyHolder.getKey().longValue();
-        return new Theme(id, theme.getName(), theme.getDescription(), theme.getThumbnail());
+        return new Theme(id, theme.getName(), theme.getDescription(), theme.getThumbnail(), theme.getStoreId());
     }
 
     @Override
     public List<Theme> findAll(int page, int size) {
-        String sql = "SELECT id, name, description, thumbnail FROM theme LIMIT ? OFFSET  ?";
+        String sql = "SELECT id, name, description, thumbnail, store_id FROM theme LIMIT ? OFFSET ?";
         int offset = page * size;
         return jdbcTemplate.query(sql, themeRowMapper, size, offset);
     }
 
     @Override
+    public List<Theme> findAllByStoreId(Long storeId, int page, int size) {
+        String sql = "SELECT id, name, description, thumbnail, store_id FROM theme WHERE store_id = ? LIMIT ? OFFSET ?";
+        int offset = page * size;
+        return jdbcTemplate.query(sql, themeRowMapper, storeId, size, offset);
+    }
+
+    @Override
     public Optional<Theme> findById(long id) {
-        String sql = "SELECT id, name, description, thumbnail FROM theme WHERE id = ?";
+        String sql = "SELECT id, name, description, thumbnail, store_id FROM theme WHERE id = ?";
         List<Theme> themes = jdbcTemplate.query(sql, themeRowMapper, id);
         return themes.stream().findFirst();
     }
@@ -66,11 +75,11 @@ public class JdbcThemeRepository implements ThemeRepository {
     public List<Theme> findPopularThemes(LocalDate start, LocalDate end, int limit) {
 
         String sql = """
-                SELECT t.id, t.name, t.description, t.thumbnail
+                SELECT t.id, t.name, t.description, t.thumbnail, t.store_id
                 FROM theme t
                 INNER JOIN reservation r ON r.theme_id = t.id
                 WHERE date BETWEEN ? AND ?
-                GROUP BY t.id, t.name, t.description, t.thumbnail
+                GROUP BY t.id, t.name, t.description, t.thumbnail, t.store_id
                 ORDER BY COUNT(*) DESC
                 LIMIT ?
                 """;
