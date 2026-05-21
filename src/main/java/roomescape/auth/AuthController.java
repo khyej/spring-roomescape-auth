@@ -3,6 +3,7 @@ package roomescape.auth;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -31,5 +32,10 @@ public class AuthController {
         String token = BearerTokenExtractor.extract(request);
         authService.logout(token);
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<LoginUser> getMe(@Auth LoginUser loginUser) {
+        return ResponseEntity.ok(loginUser);
     }
 }

@@ -37,7 +37,7 @@ class AuthControllerTest {
 
     private static final String TOKEN = "test-token";
     private static final String BEARER_TOKEN = "Bearer " + TOKEN;
-    private static final User TEST_USER = new User(1L, "동키", "donkey", "password1");
+    private static final User TEST_USER = new User(1L, "동키", "donkey", "password1", roomescape.user.Role.USER, null);
 
     @Test
     void 로그인_성공시_토큰_반환() throws Exception {

@@ -39,6 +39,6 @@ public class AuthArgumentResolver implements HandlerMethodArgumentResolver {
         HttpServletRequest request = (HttpServletRequest) webRequest.getNativeRequest();
         String token = BearerTokenExtractor.extract(request);
         User user = authService.authenticate(token);
-        return new LoginUser(user.getId(), user.getName());
+        return new LoginUser(user.getId(), user.getName(), user.getRole(), user.getStoreId());
     }
 }
