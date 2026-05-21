@@ -161,7 +161,6 @@
                     </div>
                 `).join('');
                 
-                // Do NOT scrollIntoView here to prevent jumping
             } catch (e) {
                 modal.alert({title: '시간 조회 실패', message: e.message});
             }

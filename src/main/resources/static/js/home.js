@@ -91,7 +91,7 @@
             renderThemesPage(result.items);
             document.getElementById('themes').scrollIntoView({behavior: 'smooth'});
         } catch (e) {
-            themePage -= delta; // rollback
+            themePage -= delta;
             modal.alert({title: '로드 실패', message: e.message});
         }
     }

@@ -65,7 +65,7 @@ class AuthControllerTest {
     @Test
     void 로그아웃_성공시_204() throws Exception {
         given(authService.authenticate(TOKEN)).willReturn(TEST_USER);
-        willDoNothing().given(authService).logout(TOKEN);
+        willDoNothing().given(authService).logout(TEST_USER.getId());
 
         mockMvc.perform(post("/api/auth/logout")
                         .header("Authorization", BEARER_TOKEN))
@@ -79,9 +79,9 @@ class AuthControllerTest {
     }
 
     @Test
-    void 블랙리스트_토큰으로_로그아웃시_401() throws Exception {
+    void 다른_기기_로그인으로_무효화된_토큰으로_요청시_401() throws Exception {
         given(authService.authenticate(TOKEN))
-                .willThrow(new AuthenticationException("로그아웃된 토큰입니다."));
+                .willThrow(new AuthenticationException("다른 기기에서 로그인했거나 로그아웃된 토큰입니다."));
 
         mockMvc.perform(post("/api/auth/logout")
                         .header("Authorization", BEARER_TOKEN))
