@@ -23,10 +23,11 @@ public class ThemeController {
 
     @GetMapping
     public ResponseEntity<PageThemesResponse> read(
+            @RequestParam(required = false) Long storeId,
             @RequestParam(defaultValue = "0") @Min(0) int page,
             @RequestParam(defaultValue = "10") @Max(100) int size
     ) {
-        return ResponseEntity.status(HttpStatus.OK).body(themeService.read(page, size));
+        return ResponseEntity.status(HttpStatus.OK).body(themeService.read(storeId, page, size));
     }
 
     @GetMapping("/popular")

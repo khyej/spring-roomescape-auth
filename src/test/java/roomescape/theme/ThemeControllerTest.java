@@ -28,14 +28,14 @@ class ThemeControllerTest {
     void 테마_조회() throws Exception {
         int page = 0;
         int size = 10;
-        given(themeService.read(page, size))
+        given(themeService.read(null, page, size))
                 .willReturn(PageThemesResponse.from(List.of(
                                 new ThemeResponse(1L, "공포의 방",
                                         "심장 약한 사람은 들어오지 마세요.",
-                                        "https://example.com/themes/horror.jpg"),
+                                        "https://example.com/themes/horror.jpg", 1L),
                                 new ThemeResponse(2L, "미스터리 추리",
                                         "셜록이 되어 사건을 해결해보세요.",
-                                        "https://example.com/themes/mystery.jpg")
+                                        "https://example.com/themes/mystery.jpg", 1L)
                         ), 0, 10, false)
                 );
 
@@ -54,7 +54,7 @@ class ThemeControllerTest {
                 .willReturn(ThemesResponse.from(List.of(
                         new ThemeResponse(5L, "초보자 방",
                                 "방탈출이 처음이신 분들을 위한 입문 테마.",
-                                "https://example.com/themes/beginner.jpg")
+                                "https://example.com/themes/beginner.jpg", 1L)
                 )));
         mockMvc.perform(get("/api/themes/popular"))
                 .andExpect(status().isOk())

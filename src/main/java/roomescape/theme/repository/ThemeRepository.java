@@ -11,6 +11,8 @@ public interface ThemeRepository {
 
     List<Theme> findAll(int page, int size);
 
+    List<Theme> findAllByStoreId(Long storeId, int page, int size);
+
     Optional<Theme> findById(long id);
 
     void deleteById(long id);

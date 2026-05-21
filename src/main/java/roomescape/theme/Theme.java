@@ -6,17 +6,19 @@ public class Theme {
     private final String name;
     private final String description;
     private final String thumbnail;
+    private final Long storeId;
 
-    public Theme(String name, String description, String thumbnail) {
-        this(null, name, description, thumbnail);
+    public Theme(String name, String description, String thumbnail, Long storeId) {
+        this(null, name, description, thumbnail, storeId);
     }
 
-    public Theme(Long id, String name, String description, String thumbnail) {
+    public Theme(Long id, String name, String description, String thumbnail, Long storeId) {
         validate(name, description, thumbnail);
         this.id = id;
         this.name = name;
         this.description = description;
         this.thumbnail = thumbnail;
+        this.storeId = storeId;
     }
 
     public Long getId() {
@@ -33,6 +35,16 @@ public class Theme {
 
     public String getThumbnail() {
         return thumbnail;
+    }
+
+    public Long getStoreId() {
+        return storeId;
+    }
+
+    public void validateStore(Long storeId) {
+        if (this.storeId == null || !this.storeId.equals(storeId)) {
+            throw new roomescape.exception.ForbiddenException("해당 매장의 테마만 관리할 수 있습니다.");
+        }
     }
 
     private void validate(String name, String description, String thumbnail) {
